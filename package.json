@@ -1,12 +1,18 @@
 {
   "name": "llm-guardian",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Git pre-commit hook that detects and fixes common mistakes in LLM-generated code",
   "main": "dist/index.js",
   "type": "module",
   "bin": {
     "llm-guardian": "./dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "dev": "tsx src/cli/index.ts",
     "build": "tsc",
@@ -17,7 +23,8 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test && npm run type-check"
   },
   "keywords": [
     "llm",
@@ -26,10 +33,26 @@
     "git-hook",
     "pre-commit",
     "hallucination-detection",
-    "auto-fix"
+    "auto-fix",
+    "security",
+    "performance",
+    "claude",
+    "gpt",
+    "gemini",
+    "typescript",
+    "detector",
+    "linting"
   ],
   "author": "Kalpesh Jaju",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalpeshjaju/llm-guardian.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kalpeshjaju/llm-guardian/issues"
+  },
+  "homepage": "https://github.com/kalpeshjaju/llm-guardian#readme",
   "engines": {
     "node": ">=20.0.0"
   },
