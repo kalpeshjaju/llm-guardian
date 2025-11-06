@@ -25,6 +25,7 @@ import { dirname, join } from 'path';
 import { checkCommand } from './commands/check.js';
 import { initCommand } from './commands/init.js';
 import { configCommand } from './commands/config.js';
+import { rollbackCommand } from './commands/rollback.js';
 
 /**
  * Get package version from package.json
@@ -71,6 +72,9 @@ program
   .option('--detectors <names>', 'Comma-separated list of detectors to run (default: all)')
   .option('--suggest', 'Generate LLM-powered fix suggestions (requires claude CLI)')
   .option('--fix', 'Automatically apply fixes (implies --suggest, creates backups)')
+  .option('--confidence <threshold>', 'Minimum confidence threshold for applying fixes (0.0-1.0, default: 0.0)', parseFloat)
+  .option('--interactive', 'Review fixes interactively before applying (with --fix)')
+  .option('--validate', 'Validate fixes by running type-check and tests (with --fix)')
   .option('--json', 'Output results as JSON')
   .option('--no-color', 'Disable colored output')
   .action(checkCommand);
@@ -81,6 +85,7 @@ program
   .description('Install LLM Guardian as a git pre-commit hook')
   .option('-f, --force', 'Overwrite existing hook if present')
   .option('--blocking', 'Make hook blocking (prevents commit on issues)')
+  .option('--validate', 'Enable validation (runs type-check and tests on fixes)')
   .action(initCommand);
 
 // Config command: Show/modify configuration
@@ -92,6 +97,15 @@ program
   .option('--list', 'List all configuration options')
   .option('--reset', 'Reset configuration to defaults')
   .action(configCommand);
+
+// Rollback command: Undo applied fixes
+program
+  .command('rollback')
+  .description('Restore files from backup (undo applied fixes)')
+  .option('--list', 'List all backup files without restoring')
+  .option('--file <path>', 'Restore specific file only')
+  .option('--cleanup', 'Delete backup files after restoring')
+  .action(rollbackCommand);
 
 /**
  * Error handler for uncaught errors

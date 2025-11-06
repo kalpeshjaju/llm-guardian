@@ -69,6 +69,7 @@ export class SolverAgent {
   private readonly dryRun: boolean;
   private readonly createBackups: boolean;
   private readonly backupSuffix: string;
+  private readonly minConfidence: number;
 
   /**
    * Create Solver Agent
@@ -79,10 +80,12 @@ export class SolverAgent {
     dryRun?: boolean;
     createBackups?: boolean;
     backupSuffix?: string;
+    minConfidence?: number;
   } = {}) {
     this.dryRun = options.dryRun || false;
     this.createBackups = options.createBackups !== false; // Default true
     this.backupSuffix = options.backupSuffix || '.llm-guardian-backup';
+    this.minConfidence = options.minConfidence !== undefined ? options.minConfidence : 0.0; // Default 0.0 (apply all)
   }
 
   /**
@@ -118,8 +121,20 @@ export class SolverAgent {
     const results: FixResult[] = [];
 
     try {
-      // Step 1: Filter issues with fixes
-      const fixableIssues = issues.filter(i => i.fix && i.fix.search && i.fix.replace);
+      // Step 1: Filter issues with fixes and confidence threshold
+      const fixableIssues = issues.filter(i => {
+        if (!i.fix || !i.fix.search || !i.fix.replace) {
+          return false;
+        }
+
+        // Check confidence threshold (if fix has confidence score)
+        if (i.fix.confidence !== undefined) {
+          return i.fix.confidence >= this.minConfidence;
+        }
+
+        // If no confidence score, apply fix (assume high confidence)
+        return true;
+      });
 
       if (fixableIssues.length === 0) {
         return results;

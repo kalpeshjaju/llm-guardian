@@ -22,7 +22,9 @@ import { getStagedFiles, getAllSupportedFiles } from '../utils/git.js';
 import { formatIssue } from '../utils/format.js';
 import { ProposerAgent } from '../../agents/proposer.js';
 import { SolverAgent } from '../../agents/solver.js';
+import { JudgeAgent } from '../../agents/judge.js';
 import { CLIProvider } from '../../llm/index.js';
+import { reviewFixes } from '../utils/interactive.js';
 
 /**
  * Check command options
@@ -34,6 +36,9 @@ interface CheckOptions {
   color?: boolean;
   suggest?: boolean;
   fix?: boolean;
+  confidence?: number;
+  interactive?: boolean;
+  validate?: boolean;
 }
 
 /**
@@ -116,17 +121,43 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
       executionTimeMs = Date.now() - startTime;
     }
 
-    // STEP 4.6: Apply fixes (if --fix enabled)
-    if (options.fix && allIssues.length > 0) {
+    // STEP 4.6: Interactive review (if --interactive enabled)
+    let issuesToFix = allIssues;
+
+    if (options.fix && options.interactive && allIssues.length > 0) {
+      const reviewResult = await reviewFixes(allIssues);
+
+      if (reviewResult.cancelled) {
+        console.log(chalk.yellow('⚠️  Fix application cancelled'));
+        process.exit(0);
+      }
+
+      issuesToFix = reviewResult.approved;
+
+      if (issuesToFix.length === 0) {
+        console.log(chalk.yellow('⚠️  No fixes approved'));
+        process.exit(0);
+      }
+    }
+
+    // STEP 4.7: Apply fixes (if --fix enabled)
+    let fixResults: any[] = [];
+
+    if (options.fix && issuesToFix.length > 0) {
       const fixSpinner = ora({
         text: 'Applying fixes...',
         color: 'cyan',
       }).start();
 
       try {
-        const solver = new SolverAgent({ dryRun: false, createBackups: true });
-        const fixResults = await solver.applyFixes(allIssues);
+        // Create solver with confidence threshold
+        const solver = new SolverAgent({
+          dryRun: false,
+          createBackups: true,
+          minConfidence: options.confidence || 0.0, // Default: apply all fixes
+        });
 
+        fixResults = await solver.applyFixes(issuesToFix);
         const stats = SolverAgent.getStatistics(fixResults);
 
         if (stats.successful > 0) {
@@ -134,7 +165,12 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
             chalk.green(`Applied ${stats.successful} fix(es) across ${stats.filesModified} file(s)`)
           );
           console.log(chalk.dim(`  ${stats.linesModified} line(s) modified`));
-          console.log(chalk.dim(`  Backups created (use --rollback to undo)\n`));
+
+          if (options.confidence && options.confidence > 0) {
+            console.log(chalk.dim(`  Confidence threshold: ${(options.confidence * 100).toFixed(0)}%`));
+          }
+
+          console.log(chalk.dim(`  Backups created (use 'llm-guardian rollback' to undo)\n`));
         } else {
           fixSpinner.warn(
             chalk.yellow(`No fixes could be applied (${stats.failed} failed)`)
@@ -152,6 +188,60 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
           chalk.red('Failed to apply fixes')
         );
         console.error(chalk.red(error instanceof Error ? error.message : String(error)));
+      }
+
+      executionTimeMs = Date.now() - startTime;
+    }
+
+    // STEP 4.8: Validate fixes (if --validate enabled)
+    if (options.validate && fixResults.length > 0) {
+      const validateSpinner = ora({
+        text: 'Validating fixes...',
+        color: 'cyan',
+      }).start();
+
+      try {
+        const judge = new JudgeAgent({
+          runTypeCheck: true,
+          runTests: true,
+          runLint: false, // Too slow for default
+        });
+
+        const validationResults = await judge.validateFixes(fixResults);
+        const stats = JudgeAgent.getStatistics(validationResults);
+
+        if (stats.passed === stats.total) {
+          validateSpinner.succeed(
+            chalk.green(`✅ All fixes validated successfully (${stats.checksRun.size} check(s))`)
+          );
+          console.log(chalk.dim(`  Checks run: ${Array.from(stats.checksRun).join(', ')}`));
+          console.log(chalk.dim(`  Validation time: ${stats.avgExecutionTimeMs.toFixed(0)}ms\n`));
+        } else {
+          validateSpinner.fail(
+            chalk.red(`❌ Validation failed (${stats.failed}/${stats.total} fixes)`)
+          );
+          console.log(chalk.yellow('⚠️  Consider rolling back: llm-guardian rollback'));
+          console.log('');
+
+          // Show failed checks
+          for (const result of validationResults) {
+            if (!result.success) {
+              console.log(chalk.red(`  ✗ ${result.fixResult.filePath}`));
+              for (const check of result.checks) {
+                if (!check.passed) {
+                  console.log(chalk.dim(`    ${check.name}: ${check.error}`));
+                }
+              }
+            }
+          }
+          console.log('');
+        }
+
+      } catch (error) {
+        validateSpinner.warn(
+          chalk.yellow('Could not validate fixes')
+        );
+        console.error(chalk.yellow(error instanceof Error ? error.message : String(error)));
       }
 
       executionTimeMs = Date.now() - startTime;
