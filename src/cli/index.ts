@@ -69,6 +69,7 @@ program
   .description('Run detectors on staged files (or all files with --all)')
   .option('-a, --all', 'Check all files in project (not just staged)')
   .option('--detectors <names>', 'Comma-separated list of detectors to run (default: all)')
+  .option('--suggest', 'Generate LLM-powered fix suggestions (requires claude CLI)')
   .option('--json', 'Output results as JSON')
   .option('--no-color', 'Disable colored output')
   .action(checkCommand);

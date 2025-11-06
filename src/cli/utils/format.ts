@@ -65,7 +65,33 @@ export function formatIssue(issue: Issue): string {
   // Line 5: Auto-fix indicator (if present)
   if (issue.fix && issue.fix.confidence !== undefined) {
     const confidencePercent = Math.round(issue.fix.confidence * 100);
-    lines.push(`  ${chalk.cyan('🔧')} ${chalk.dim(`Auto-fix available (${confidencePercent}% confidence)`)}`);
+
+    // Show fix details if available
+    if (issue.fix.explanation) {
+      lines.push(`  ${chalk.cyan('🤖')} ${chalk.cyan('LLM Suggestion:')} ${chalk.dim(issue.fix.explanation)}`);
+    } else {
+      lines.push(`  ${chalk.cyan('🔧')} ${chalk.dim(`Auto-fix available (${confidencePercent}% confidence)`)}`);
+    }
+
+    // Show code change preview (SEARCH → REPLACE)
+    if (issue.fix.search && issue.fix.replace) {
+      // Convert RegExp to string if needed
+      const searchStr = typeof issue.fix.search === 'string'
+        ? issue.fix.search
+        : issue.fix.search.source;
+      const replaceStr = issue.fix.replace;
+
+      const searchPreview = searchStr.length > 60
+        ? searchStr.substring(0, 57) + '...'
+        : searchStr;
+      const replacePreview = replaceStr.length > 60
+        ? replaceStr.substring(0, 57) + '...'
+        : replaceStr;
+
+      lines.push(`  ${chalk.red('  -')} ${chalk.red(searchPreview)}`);
+      lines.push(`  ${chalk.green('  +')} ${chalk.green(replacePreview)}`);
+      lines.push(`  ${chalk.dim(`  Confidence: ${confidencePercent}%`)}`);
+    }
   }
 
   return lines.join('\n');

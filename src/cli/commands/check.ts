@@ -20,6 +20,8 @@ import { CodeQualityDetector } from '../../detectors/code-quality-detector.js';
 import type { IDetector, DetectorResult, Issue, AnalysisFile } from '../../detectors/types.js';
 import { getStagedFiles, getAllSupportedFiles } from '../utils/git.js';
 import { formatIssue } from '../utils/format.js';
+import { ProposerAgent } from '../../agents/proposer.js';
+import { CLIProvider } from '../../llm/index.js';
 
 /**
  * Check command options
@@ -29,6 +31,7 @@ interface CheckOptions {
   detectors?: string;
   json?: boolean;
   color?: boolean;
+  suggest?: boolean;
 }
 
 /**
@@ -82,8 +85,34 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
     const results = await runDetectors(detectors, files);
 
     // STEP 4: Aggregate results
-    const allIssues = aggregateIssues(results);
-    const executionTimeMs = Date.now() - startTime;
+    let allIssues = aggregateIssues(results);
+    let executionTimeMs = Date.now() - startTime;
+
+    // STEP 4.5: Generate LLM fix suggestions (if --suggest enabled)
+    if (options.suggest && allIssues.length > 0) {
+      const suggestionSpinner = ora({
+        text: 'Generating intelligent fix suggestions...',
+        color: 'cyan',
+      }).start();
+
+      try {
+        const provider = new CLIProvider({ timeoutMs: 15000 }); // 15s timeout
+        const proposer = new ProposerAgent(provider, { maxConcurrent: 3 });
+
+        allIssues = await proposer.enrichIssues(allIssues, files);
+
+        const stats = ProposerAgent.getStatistics(allIssues);
+        suggestionSpinner.succeed(
+          chalk.green(`Generated ${stats.withFix} suggestions (avg confidence: ${(stats.avgConfidence * 100).toFixed(0)}%)`)
+        );
+      } catch (error) {
+        suggestionSpinner.warn(
+          chalk.yellow('Could not generate suggestions (claude CLI not available)')
+        );
+      }
+
+      executionTimeMs = Date.now() - startTime;
+    }
 
     // STEP 5: Format and display results
     if (options.json) {

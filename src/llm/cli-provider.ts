@@ -266,7 +266,7 @@ export class CLIProvider implements ILLMProvider {
       // If we have 2 code blocks, assume before/after
       if (codeBlocks.length === 2 && codeBlocks[0] && codeBlocks[1]) {
         return {
-          type: 'string-replace',
+          type: 'llm-generated',
           search: codeBlocks[0],
           replace: codeBlocks[1],
           confidence: 0.85,
@@ -277,7 +277,7 @@ export class CLIProvider implements ILLMProvider {
       // If we have 1 code block, use as replacement
       if (codeBlocks.length === 1 && codeBlocks[0] && issue.evidence) {
         return {
-          type: 'string-replace',
+          type: 'llm-generated',
           search: issue.evidence,
           replace: codeBlocks[0],
           confidence: 0.75,
@@ -291,7 +291,7 @@ export class CLIProvider implements ILLMProvider {
 
       if (arrowMatch && arrowMatch[1] && arrowMatch[2]) {
         return {
-          type: 'string-replace',
+          type: 'llm-generated',
           search: arrowMatch[1],
           replace: arrowMatch[2],
           confidence: 0.7,
@@ -307,7 +307,7 @@ export class CLIProvider implements ILLMProvider {
 
         if (searchMatch && searchMatch[1] && replaceMatch && replaceMatch[1]) {
           return {
-            type: 'string-replace',
+            type: 'llm-generated',
             search: searchMatch[1].trim(),
             replace: replaceMatch[1].trim(),
             confidence: 0.9,

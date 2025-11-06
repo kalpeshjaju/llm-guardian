@@ -10,7 +10,7 @@
  * LAST UPDATED: 2025-11-06
  */
 
-import type { Issue } from '../detectors/types.js';
+import type { Issue, Fix } from '../detectors/types.js';
 
 /**
  * LLM provider interface
@@ -88,23 +88,8 @@ export interface LLMResponse {
   /** Whether fix generation succeeded */
   success: boolean;
 
-  /** Generated fix (code to replace) */
-  fix?: {
-    /** Type of fix */
-    type: 'string-replace' | 'line-replace' | 'insert' | 'delete';
-
-    /** Original code to find */
-    search: string;
-
-    /** Replacement code */
-    replace: string;
-
-    /** Confidence score (0-1) */
-    confidence: number;
-
-    /** Explanation of the fix */
-    explanation: string;
-  };
+  /** Generated fix (uses Fix type from detectors) */
+  fix?: Fix;
 
   /** Alternative suggestion (if cannot provide direct fix) */
   suggestion?: string;
