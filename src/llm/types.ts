@@ -137,7 +137,7 @@ export interface LLMProviderConfig {
  */
 export interface PromptTemplate {
   /** Issue category this template is for */
-  category: 'hallucination' | 'code-quality' | 'requirements' | 'architecture';
+  category: 'hallucination' | 'code-quality' | 'security' | 'performance' | 'requirements' | 'architecture';
 
   /** System prompt (sets behavior) */
   system: string;

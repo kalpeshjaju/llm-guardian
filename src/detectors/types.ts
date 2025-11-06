@@ -55,8 +55,8 @@ export interface Issue {
   /** Severity level (critical, high, medium, low) */
   severity: Severity;
 
-  /** Category of issue (hallucination, code-quality, requirements, architecture) */
-  category: 'hallucination' | 'code-quality' | 'requirements' | 'architecture';
+  /** Category of issue (hallucination, code-quality, security, performance, requirements, architecture) */
+  category: 'hallucination' | 'code-quality' | 'security' | 'performance' | 'requirements' | 'architecture';
 
   /** File path where issue was detected */
   filePath: string;
@@ -178,8 +178,8 @@ export interface AnalysisFile {
   /** Git status (staged, modified, etc.) */
   gitStatus?: 'staged' | 'modified' | 'untracked';
 
-  /** File extension for quick filtering */
-  extension: string;
+  /** File extension for quick filtering (optional) */
+  extension?: string;
 }
 
 /**

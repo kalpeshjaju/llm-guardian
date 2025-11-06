@@ -17,6 +17,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { HallucinationDetector } from '../../detectors/hallucination-detector.js';
 import { CodeQualityDetector } from '../../detectors/code-quality-detector.js';
+import { SecurityDetector } from '../../detectors/security-detector.js';
+import { PerformanceDetector } from '../../detectors/performance-detector.js';
 import type { IDetector, DetectorResult, Issue, AnalysisFile } from '../../detectors/types.js';
 import { getStagedFiles, getAllSupportedFiles } from '../utils/git.js';
 import { formatIssue } from '../utils/format.js';
@@ -300,6 +302,8 @@ function loadDetectors(detectorsOption?: string): IDetector[] {
   const allDetectors: IDetector[] = [
     new HallucinationDetector(),
     new CodeQualityDetector(),
+    new SecurityDetector(),
+    new PerformanceDetector(),
   ];
 
   if (!detectorsOption) {

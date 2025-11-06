@@ -62,7 +62,7 @@ ${outputFormat}`;
  * @returns Prompt template
  */
 function getTemplateForCategory(
-  category: 'hallucination' | 'code-quality' | 'requirements' | 'architecture'
+  category: 'hallucination' | 'code-quality' | 'security' | 'performance' | 'requirements' | 'architecture'
 ): { system: string; focus: string } {
   switch (category) {
     case 'hallucination':
@@ -93,6 +93,36 @@ RULES:
 - Follow TypeScript best practices
 - Output in the structured format specified`,
         focus: 'code-quality',
+      };
+
+    case 'security':
+      return {
+        system: `You are a security vulnerability fix assistant.
+
+Your task: Generate a secure code fix that eliminates the security vulnerability.
+
+RULES:
+- Provide ONLY the exact code change needed
+- Remove or mitigate the security vulnerability completely
+- Follow OWASP security best practices
+- Ensure fix doesn't introduce new vulnerabilities
+- Output in the structured format specified`,
+        focus: 'security',
+      };
+
+    case 'performance':
+      return {
+        system: `You are a performance optimization assistant.
+
+Your task: Generate an optimized code fix that improves performance.
+
+RULES:
+- Provide ONLY the exact code change needed
+- Improve performance without changing functionality
+- Use efficient algorithms and data structures
+- Avoid premature optimization (balance readability and performance)
+- Output in the structured format specified`,
+        focus: 'performance',
       };
 
     default:

@@ -226,6 +226,9 @@ export class ProposerAgent {
       return null;
     }
 
+    // Extract file extension (from property or file path)
+    const fileExtension = file.extension || file.path.substring(file.path.lastIndexOf('.')) || '.txt';
+
     // Extract surrounding lines
     const surroundingLines = extractSurroundingLines(file.content, issue.line, 3);
 
@@ -236,7 +239,7 @@ export class ProposerAgent {
     return {
       fileContent: file.content,
       filePath: file.path,
-      fileExtension: file.extension,
+      fileExtension,
       surroundingLines: surroundingLines || undefined,
       relatedIssues: relatedIssues.length > 0 ? relatedIssues : undefined,
     };
