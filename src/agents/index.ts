@@ -5,7 +5,7 @@
  *
  * AGENTS:
  * - Proposer: Generate fix suggestions using LLM
- * - Solver: Apply fixes (future)
+ * - Solver: Apply fixes automatically
  * - Judge: Validate fixes (future)
  *
  * AUTHOR: Claude Code
@@ -13,3 +13,5 @@
  */
 
 export { ProposerAgent } from './proposer.js';
+export { SolverAgent } from './solver.js';
+export type { FixResult } from './solver.js';

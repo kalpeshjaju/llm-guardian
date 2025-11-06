@@ -21,6 +21,7 @@ import type { IDetector, DetectorResult, Issue, AnalysisFile } from '../../detec
 import { getStagedFiles, getAllSupportedFiles } from '../utils/git.js';
 import { formatIssue } from '../utils/format.js';
 import { ProposerAgent } from '../../agents/proposer.js';
+import { SolverAgent } from '../../agents/solver.js';
 import { CLIProvider } from '../../llm/index.js';
 
 /**
@@ -32,6 +33,7 @@ interface CheckOptions {
   json?: boolean;
   color?: boolean;
   suggest?: boolean;
+  fix?: boolean;
 }
 
 /**
@@ -109,6 +111,47 @@ export async function checkCommand(options: CheckOptions): Promise<void> {
         suggestionSpinner.warn(
           chalk.yellow('Could not generate suggestions (claude CLI not available)')
         );
+      }
+
+      executionTimeMs = Date.now() - startTime;
+    }
+
+    // STEP 4.6: Apply fixes (if --fix enabled)
+    if (options.fix && allIssues.length > 0) {
+      const fixSpinner = ora({
+        text: 'Applying fixes...',
+        color: 'cyan',
+      }).start();
+
+      try {
+        const solver = new SolverAgent({ dryRun: false, createBackups: true });
+        const fixResults = await solver.applyFixes(allIssues);
+
+        const stats = SolverAgent.getStatistics(fixResults);
+
+        if (stats.successful > 0) {
+          fixSpinner.succeed(
+            chalk.green(`Applied ${stats.successful} fix(es) across ${stats.filesModified} file(s)`)
+          );
+          console.log(chalk.dim(`  ${stats.linesModified} line(s) modified`));
+          console.log(chalk.dim(`  Backups created (use --rollback to undo)\n`));
+        } else {
+          fixSpinner.warn(
+            chalk.yellow(`No fixes could be applied (${stats.failed} failed)`)
+          );
+        }
+
+        // Remove fixed issues from display (they're already fixed!)
+        const fixedIssueIds = new Set(
+          fixResults.filter(r => r.success).map(r => r.issueId)
+        );
+        allIssues = allIssues.filter(issue => !fixedIssueIds.has(issue.id));
+
+      } catch (error) {
+        fixSpinner.fail(
+          chalk.red('Failed to apply fixes')
+        );
+        console.error(chalk.red(error instanceof Error ? error.message : String(error)));
       }
 
       executionTimeMs = Date.now() - startTime;
